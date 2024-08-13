@@ -1,0 +1,430 @@
+---
+title: "Sganze-Nitor"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+Financeiro {data-icon="fa-solid fa-coins"}
+=======================================================================
+
+Row
+-----------------------------------------------------------------------
+
+
+### USD/BRL {.value-box}
+
+```{r cotacao_usd}
+library(httr)
+library(jsonlite)
+
+# URL da API do Banco Central para a cotação do USD/BRL
+url <- "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados/ultimos/1?formato=json"
+
+# Fazendo a requisição GET para a API
+response <- GET(url)
+
+# Convertendo o conteúdo da resposta para formato JSON
+data <- fromJSON(content(response, "text"))
+
+# Extraindo o valor do USD/BRL
+usd_brl <- data$valor
+
+# Convertendo texto para número e arredondando.
+usd_brl <- round(as.numeric(usd_brl), 2)
+```
+
+```{r}
+valueBox(value = usd_brl, "USD/BRL", icon = "fa-solid fa-dollar-sign")
+```
+
+### EURO/BRL {.value-box}
+
+```{r cotacao_eur}
+# URL da API do Banco Central para a cotação do EUR/BRL
+url_eur <- "https://api.bcb.gov.br/dados/serie/bcdata.sgs.21619/dados/ultimos/1?formato=json"
+
+# Fazendo a requisição GET para a API
+response_eur <- GET(url_eur)
+
+# Convertendo o conteúdo da resposta para formato JSON
+data_eur <- fromJSON(content(response_eur, "text"))
+
+# Extraindo o valor do EUR/BRL
+eur_brl <- data_eur$valor
+
+# Convertendo texto para número e arredondando.
+eur_brl <- round(as.numeric(eur_brl), 2)
+```
+
+```{r}
+valueBox(eur_brl, "EURO/BRL", icon = "fa-solid fa-euro-sign")
+```
+
+### SELIC {.value-box}
+
+```{r selic}
+# URL da API do Banco Central para a Taxa Selic
+url_selic <- "https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json"
+
+# Fazendo a requisição GET para a API
+response_selic <- GET(url_selic)
+
+# Convertendo o conteúdo da resposta para formato JSON
+data_selic <- fromJSON(content(response_selic, "text"))
+
+# Extraindo o valor da Taxa Selic
+selic_rate <- data_selic$valor
+```
+
+```{r}
+valueBox(paste0(selic_rate, "%"), "SELIC (%)", icon = "fa-solid fa-percent")
+```
+
+### Preço do Açúcar {.value-box}
+
+```{r cotacao_sugar}
+library(quantmod)
+
+# Obtendo a cotação do açúcar usando o símbolo "SB=F" do Yahoo Finance
+sugar_data <- getSymbols("SB=F", src = "yahoo", from = Sys.Date()-30, to = Sys.Date(), verbose = FALSE, auto.assign = FALSE)
+
+# Extraindo o valor de fechamento mais recente (última cotação disponível)
+acucar_valor <- as.numeric(last(Cl(sugar_data)))
+```
+
+```{r}
+valueBox(round(x = acucar_valor, digits = 2), "Açúcar (USD)", icon = "fa-solid fa-chart-line")
+```
+
+### Etanol {.value-box}
+
+```{r}
+valueBox("0.47", "Etanol (USD/L)", icon = "fa-solid fa-chart-line")
+```
+
+## Column {data-width="50%"}
+
+### Histórico 30 dias
+
+```{r}
+library(plotly)
+
+# Obter os dados do açúcar dos últimos 30 dias
+sugar_data <- getSymbols("SB=F", src = "yahoo", from = Sys.Date()-30, to = Sys.Date(), auto.assign = FALSE)
+
+# Criar um data frame para o plotly
+sugar_df <- data.frame(Date = index(sugar_data), 
+                       Close = as.numeric(sugar_data[, "SB=F.Close"]))
+
+# Criar o gráfico de série temporal interativo
+sugar_plot <- plot_ly(sugar_df, x = ~Date, y = ~Close, type = 'scatter', mode = 'lines',
+                      line = list(color = 'blue')) %>%
+  layout(title = "Preço do Açúcar (USD)",
+         xaxis = list(title = "Data"),
+         yaxis = list(title = "Preço de Fechamento"))
+
+# Exibir o gráfico interativo
+sugar_plot
+
+```
+
+## Column {data-width="50%"}
+
+### Histórico de 20 dias
+
+```{r}
+library(magrittr)
+library(plotly)
+
+# URL da API do Banco Central para a série temporal do USD/BRL (últimos 30 dias)
+url <- "https://api.bcb.gov.br/dados/serie/bcdata.sgs.1/dados/ultimos/20?formato=json"
+
+
+# Fazendo a requisição GET para a API
+response <- GET(url)
+
+# Convertendo o conteúdo da resposta para formato JSON
+data_usd_20 <- fromJSON(content(x = response, as = "text"))
+
+# Convertendo a data para o formato Date e o valor para numérico
+usd_brl_data_20 <- data.frame(
+  Date = as.Date(data_usd_20$data, format="%d/%m/%Y"),
+  Close = as.numeric(data_usd_20$valor)
+)
+
+# Criar o gráfico de série temporal interativo com Plotly
+usdbrl_plot_20 <- plot_ly(usd_brl_data_20, x = ~Date, y = ~Close, type = 'scatter', mode = 'lines',
+                       line = list(color = 'green')) %>%
+  layout(title = "Taxa de Câmbio USD/BRL",
+         xaxis = list(title = "Data"),
+         yaxis = list(title = "Valor de Fechamento (BRL)"))
+
+# Exibir o gráfico interativo no Chart B
+usdbrl_plot_20
+```
+
+### Histórico 20 dias
+
+```{r}
+library(magrittr)
+library(plotly)
+
+# URL da API do Banco Central para a série temporal do USD/BRL (últimos 20 dias)
+url <- "https://api.bcb.gov.br/dados/serie/bcdata.sgs.21619/dados/ultimos/20?formato=json"
+
+
+# Fazendo a requisição GET para a API
+response <- GET(url)
+
+# Convertendo o conteúdo da resposta para formato JSON
+data_eur_20 <- fromJSON(content(x = response, as = "text"))
+
+# Convertendo a data para o formato Date e o valor para numérico
+eur_brl_data_20 <- data.frame(
+  Date = as.Date(data_eur_20$data, format="%d/%m/%Y"),
+  Close = as.numeric(data_eur_20$valor)
+)
+
+# Criar o gráfico de série temporal interativo com Plotly
+eurbrl_plot_20 <- plot_ly(eur_brl_data_20, x = ~Date, y = ~Close, type = 'scatter', mode = 'lines',
+                       line = list(color = 'tomato')) %>%
+  layout(title = "Taxa de Câmbio EUR/BRL",
+         xaxis = list(title = "Data"),
+         yaxis = list(title = "Valor de Fechamento (BRL)"))
+
+# Exibir o gráfico interativo no Chart B
+eurbrl_plot_20
+```
+
+
+
+
+Clima {data-icon="fa-solid fa-cloud-sun-rain" data-orientation="columns"}
+=======================================================================
+
+
+```{r}
+library(httr)
+library(jsonlite)
+library(htmltools)
+
+
+# Definir a latitude e longitude de São Manuel, SP
+
+lat <- "-22.674355"
+lon <- "-48.544748"
+
+url <- paste0("https://api.open-meteo.com/v1/forecast?latitude=", lat, "&longitude=", lon, "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=America/Sao_Paulo")
+
+
+# Requisição GET
+response <- GET(url)
+data <- fromJSON(content(response, "text", encoding = "UTF-8"))
+
+# Extraindo informações
+dates <- data$daily$time
+max_temps <- data$daily$temperature_2m_max
+min_temps <- data$daily$temperature_2m_min
+precipitation <- data$daily$precipitation_sum
+```
+
+Column
+-------------------------------------
+
+### HOJE {.value-box}
+
+```{r}
+valueBox(value = format(as.Date(dates[1]), "%d/%m"), icon = "fa-regular fa-calendar-days")
+```
+
+### Temp Max {.value-box}
+
+```{r}
+valueBox(value = max_temps[1], icon = "fa-solid fa-sun")
+```
+
+### Temp Min {.value-box}
+
+```{r}
+valueBox(value = min_temps[1], icon = "fa-regular fa-snowflake")
+```
+
+### Chuva {.value-box}
+
+```{r}
+valueBox(value = precipitation[1], icon = "fa-solid fa-cloud-rain")
+```
+
+Column
+-------------------------------------
+
+### Amanhã {.value-box}
+
+```{r}
+valueBox(value = format(as.Date(dates[2]), "%d/%m"), icon = "fa-regular fa-calendar-days")
+```
+
+### Temp Max {.value-box}
+
+```{r}
+valueBox(value = max_temps[2], icon = "fa-solid fa-sun")
+```
+
+### Temp Min {.value-box}
+
+```{r}
+valueBox(value = min_temps[2], icon = "fa-regular fa-snowflake")
+```
+
+### Chuva {.value-box}
+
+```{r}
+valueBox(value = precipitation[2], icon = "fa-solid fa-cloud-rain")
+```
+
+Column
+-------------------------------------
+
+### 2 dias {.value-box}
+
+```{r}
+valueBox(value = format(as.Date(dates[3]), "%d/%m"), icon = "fa-regular fa-calendar-days")
+```
+
+### Temp Max {.value-box}
+
+```{r}
+valueBox(value = max_temps[3], icon = "fa-solid fa-sun")
+```
+
+### Temp Min {.value-box}
+
+```{r}
+valueBox(value = min_temps[3], icon = "fa-regular fa-snowflake")
+```
+
+### Chuva {.value-box}
+
+```{r}
+valueBox(value = precipitation[3], icon = "fa-solid fa-cloud-rain")
+```
+
+Column
+-------------------------------------
+
+### 3 dias {.value-box}
+
+```{r}
+valueBox(value = format(as.Date(dates[4]), "%d/%m"), icon = "fa-regular fa-calendar-days")
+```
+
+### Temp Max {.value-box}
+
+```{r}
+valueBox(value = max_temps[4], icon = "fa-solid fa-sun")
+```
+
+### Temp Min {.value-box}
+
+```{r}
+valueBox(value = min_temps[4], icon = "fa-regular fa-snowflake")
+```
+
+### Chuva {.value-box}
+
+```{r}
+valueBox(value = precipitation[4], icon = "fa-solid fa-cloud-rain")
+```
+
+Column
+-------------------------------------
+
+### 4 dias {.value-box}
+
+```{r}
+valueBox(value = format(as.Date(dates[5]), "%d/%m"), icon = "fa-regular fa-calendar-days")
+```
+
+### Temp Max {.value-box}
+
+```{r}
+valueBox(value = max_temps[5], icon = "fa-solid fa-sun")
+```
+
+### Temp Min {.value-box}
+
+```{r}
+valueBox(value = min_temps[5], icon = "fa-regular fa-snowflake")
+```
+
+### Chuva {.value-box}
+
+```{r}
+valueBox(value = precipitation[5], icon = "fa-solid fa-cloud-rain")
+```
+
+Column
+-------------------------------------
+
+### 5 dias {.value-box}
+
+```{r}
+valueBox(value = format(as.Date(dates[6]), "%d/%m"), icon = "fa-regular fa-calendar-days")
+```
+
+### Temp Max {.value-box}
+
+```{r}
+valueBox(value = max_temps[6], icon = "fa-solid fa-sun")
+```
+
+### Temp Min {.value-box}
+
+```{r}
+valueBox(value = min_temps[6], icon = "fa-regular fa-snowflake")
+```
+
+### Chuva {.value-box}
+
+```{r}
+valueBox(value = precipitation[6], icon = "fa-solid fa-cloud-rain")
+```
+
+Column
+-------------------------------------
+
+### 6 dias {.value-box}
+
+```{r}
+valueBox(value = format(as.Date(dates[7]), "%d/%m"), icon = "fa-regular fa-calendar-days")
+```
+
+### Temp Max {.value-box}
+
+```{r}
+valueBox(value = max_temps[7], icon = "fa-solid fa-sun")
+```
+
+### Temp Min {.value-box}
+
+```{r}
+valueBox(value = min_temps[7], icon = "fa-regular fa-snowflake")
+```
+
+### Chuva {.value-box}
+
+```{r}
+valueBox(value = precipitation[7], icon = "fa-solid fa-cloud-rain")
+```
+
+
+
+
+Notícias {data-icon="fa-regular fa-newspaper"}
+=======================================================================
